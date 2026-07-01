@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Integrated Smart Print Scanner Pro</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="page-loader">
+        <div class="spinner"></div>
+        <div class="loader-text">Loading Workspace...</div>
+    </div>
+
+    <div class="container fade-in-up">
+        
+        <div class="top-nav fade-in-up delay-1">
+            <div class="clock-banner">
+                <i class="far fa-clock"></i> <span id="liveClock">Loading Time...</span>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">
+                <i class="fas fa-moon"></i> <span>Dark Mode</span>
+            </button>
+        </div>
+
+        <div class="header fade-in-up delay-1">
+            <h1>Integrated Smart Scanner Pro</h1>
+            <p>ID Card processing, Document Filtering, & Custom Resizing</p>
+        </div>
+
+        <div class="settings-panel fade-in-up delay-2">
+            <div class="input-group" style="max-width: 100%;">
+                <label><i class="fas fa-layer-group"></i> Select Document Type:</label>
+                <select id="docMode" onchange="changeMode()">
+                    <option value="id">🆔 ID Card Mode (85.6 x 54 mm)</option>
+                    <option value="general">📄 General Document (Free Crop, Auto-fit A4)</option>
+                    <option value="custom">📏 Custom Size Mode (Manual Resize)</option>
+                </select>
+            </div>
+            
+            <div class="input-group" style="max-width: 100%;">
+                <label><i class="fas fa-magic"></i> Image Filter:</label>
+                <select id="globalFilter">
+                    <option value="none">Original Color</option>
+                    <option value="grayscale">Grayscale</option>
+                    <option value="bw">Black & White (High Contrast Document)</option>
+                </select>
+            </div>
+
+            <div class="custom-dim-group" id="customDimensions">
+                <div class="input-group">
+                    <label>Width (mm):</label>
+                    <input type="number" id="cWidth" value="100" onchange="changeMode()">
+                </div>
+                <div class="input-group">
+                    <label>Height (mm):</label>
+                    <input type="number" id="cHeight" value="150" onchange="changeMode()">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label><i class="fas fa-file-signature"></i> File Name (Optional):</label>
+                <input type="text" id="customFileName" placeholder="e.g., Customer_Doc">
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-compress-arrows-alt"></i> Max File Size (KB):</label>
+                <input type="number" id="targetKB" value="200" min="10">
+            </div>
+        </div>
+
+        <div class="upload-section fade-in-up delay-3">
+            <div class="box">
+                <h3><i class="fas fa-cloud-upload-alt"></i> Upload Image 1 (Front)</h3>
+                <input type="file" id="frontInput" accept="image/*" onchange="initCrop(this, 'frontImage', 'frontCropContainer', 'frontControls', 1)">
+                <div class="crop-container" id="frontCropContainer">
+                    <img id="frontImage" class="crop-image">
+                </div>
+                <div class="controls" id="frontControls">
+                    <div class="control-row">
+                        <button class="btn-rotate" onclick="rotateImage(1)"><i class="fas fa-redo"></i> 90&deg;</button>
+                        <div class="slider-group">
+                            <label>Straighten <span id="frontStraightenVal">0&deg;</span></label>
+                            <input type="range" min="-45" max="45" value="0" oninput="straightenImage(1, this.value)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box" id="backBox">
+                <h3><i class="fas fa-cloud-upload-alt"></i> Upload Image 2 (Back)</h3>
+                <input type="file" id="backInput" accept="image/*" onchange="initCrop(this, 'backImage', 'backCropContainer', 'backControls', 2)">
+                <div class="crop-container" id="backCropContainer">
+                    <img id="backImage" class="crop-image">
+                </div>
+                <div class="controls" id="backControls">
+                    <div class="control-row">
+                        <button class="btn-rotate" onclick="rotateImage(2)"><i class="fas fa-redo"></i> 90&deg;</button>
+                        <div class="slider-group">
+                            <label>Straighten <span id="backStraightenVal">0&deg;</span></label>
+                            <input type="range" min="-45" max="45" value="0" oninput="straightenImage(2, this.value)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-group fade-in-up delay-3">
+            <button class="btn-action btn-preview" id="previewBtn" onclick="showPreview()" disabled>
+                <i class="fas fa-magic"></i> Generate A4 Preview
+            </button>
+        </div>
+
+        <div id="loadingMsg"><i class="fas fa-spinner fa-spin"></i> Processing File, Please Wait...</div>
+
+        <div class="preview-section" id="previewSection">
+            <h3><i class="fas fa-file-alt"></i> Final A4 Document Preview</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Review your document below. If everything looks perfect, proceed to export.</p>
+            
+            <img id="finalPreviewImg" class="a4-preview-img" alt="A4 Preview">
+
+            <div class="action-group" style="margin-top: 25px;">
+                <button class="btn-action btn-print" id="printBtn" onclick="printDocument()">
+                    <i class="fas fa-print"></i> Print Document
+                </button>
+                <button class="btn-action btn-pdf" id="pdfBtn" onclick="processDownload('pdf')">
+                    <i class="fas fa-file-pdf"></i> Download PDF
+                </button>
+                <button class="btn-action btn-jpg" id="jpgBtn" onclick="processDownload('jpg')">
+                    <i class="fas fa-file-image"></i> Download JPG
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
